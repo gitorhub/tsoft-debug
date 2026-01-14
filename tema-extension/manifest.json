@@ -2,7 +2,7 @@
   "name": "T-Soft Theme Devtools",
   "version": "1.0.0",
   "manifest_version": 3,
-  "description": "Tema altyapısını gösteren özel devtools paneli. Blok değişkenlerini, çevirileri ve debug bilgilerini gösteren özel Chrome DevTools paneli.",
+  "description": "Tema altyapısını gösteren özel Chrome DevTools paneli; blok değişkenleri, çeviriler ve debug bilgilerini sunar.",
   "devtools_page": "devtools.html",
   "permissions": [],
   "icons": {
