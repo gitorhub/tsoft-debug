@@ -5,53 +5,56 @@
   <meta charset="utf-8" />
   <title>Theme Panel</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     :root {
       --primary-color: #fb8122;
       --primary-color-dark: #dd6c1b;
       --primary-color-light: #fff4ec;
       --danger-color: #b91c1c;
-      --bg-color: #ffffff;
+      --bg-color: #F6F6F7;
       --bg-muted: #fafafa;
       --bg-alt: #f1f5f9;
-      --text-color: #1f2937;
-      --text-muted: #475569;
-      --border-color: #d4d4d4;
-      --surface-0: #ffffff;
-      --surface-1: #f5f5f5;
-      --surface-2: #ececec;
-      --border-color: #e2e2e2;
       --text-color: #202124;
       --text-muted: #5f6368;
+      --border-color: #E1E3E5;
+      --surface-0: #ffffff;
+      --surface-1: #f9f9f9;
+      --surface-2: #eeeeee;
       --accent-color: var(--primary-color);
     }
 
     body[data-theme="dark"] {
-      --bg-color: #0f172a;
-      --bg-muted: #1e293b;
-      --bg-alt: #334155;
-      --text-color: #f8fafc;
-      --text-muted: #cbd5e1;
-      --border-color: #475569;
+      --bg-color: #272822;
+      --bg-muted: #2d2a2e;
+      --bg-alt: #3e3d32;
+      --text-color: #f8f8f2;
+      --text-muted: #a59f85;
+      --border-color: #3e3d32;
       --primary-color-light: #3e2a18;
-      --surface-0: #0f0f10;
-      --surface-1: #141415;
-      --surface-2: #1b1b1d;
-      --border-color: #262626;
-      --text-color: #f5f5f5;
-      --text-muted: #9ca3af;
+      --surface-0: #1e1e1e;
+      --surface-1: #252526;
+      --surface-2: #2d2d30;
       --accent-color: var(--primary-color);
     }
 
     body {
-      font-family: sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       padding: 8px 10px;
-      background: var(--surface-0);
+      background: var(--bg-color);
       color: var(--text-color);
       transition: background .25s ease, color .25s ease;
+      margin: 0;
     }
 
     body[data-theme="dark"] {
-      background: radial-gradient(circle at 30% 20%, #181818 0%, #0f0f10 60%);
+      background: var(--bg-color);
     }
 
     p {
@@ -65,13 +68,16 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       position: relative;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
     }
 
     .panel-header h2 {
       margin: 0;
       font-size: 18px;
+      font-weight: 600;
       color: var(--text-color);
     }
 
@@ -96,6 +102,12 @@
       margin-bottom: 14px;
     }
 
+    body[data-theme="dark"] .warning-message {
+      background: rgba(185, 28, 28, 0.15);
+      color: #fca5a5;
+      border-color: #7f1d1d;
+    }
+
     .hidden {
       display: none !important;
     }
@@ -104,18 +116,18 @@
       display: block;
     }
 
+
     section {
       margin-bottom: 20px;
-      border: 1px solid #e5e5e5;
-      border-radius: 6px;
-      padding: 12px 16px;
-      background: var(--surface-1);
-      border-color: var(--border-color);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 18px;
+      background: var(--surface-0);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
     }
 
     body[data-theme="dark"] section {
-      box-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
     }
 
     section h2 {
@@ -165,17 +177,103 @@
     }
 
     .translation-group {
-      border: 1px solid #d4d4d4;
+      border: 1px solid var(--border-color);
       border-radius: 4px;
-      padding: 10px;
       background: var(--surface-0);
-      border-color: var(--border-color);
+    }
+
+    .translation-group details {
+      background: transparent;
+    }
+
+    .translation-group summary {
+      padding: 10px 12px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--primary-color-dark);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s ease;
+    }
+
+    .translation-group summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .translation-group summary:hover {
+      background: var(--surface-1);
+    }
+
+    .translation-group summary::before {
+      content: '▶';
+      display: inline-block;
+      font-size: 11px;
+      transition: transform 0.2s ease;
+      color: var(--text-muted);
+    }
+
+    .translation-group details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .translation-group-content {
+      padding: 0 12px 10px 12px;
     }
 
     .translation-group h3 {
-      margin: 0 0 8px 0;
+      margin: 0;
       font-size: 15px;
       color: var(--primary-color-dark);
+    }
+
+    .toggle-all-btn {
+      padding: 6px 12px;
+      background: var(--surface-1);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .toggle-all-btn::before {
+      content: '▼';
+      font-size: 10px;
+      transition: transform 0.2s ease;
+    }
+
+    .toggle-all-btn.all-closed::before {
+      content: '▶';
+    }
+
+    .toggle-all-btn:hover {
+      background: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    body[data-theme="dark"] .toggle-all-btn {
+      background: var(--surface-2);
+      color: var(--text-color);
+      border-color: var(--border-color);
+    }
+
+    body[data-theme="dark"] .toggle-all-btn:hover {
+      background: var(--primary-color);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(251, 129, 34, 0.3);
     }
 
     .translation-group pre {
@@ -187,6 +285,13 @@
       font-size: 12px;
       white-space: pre-wrap;
       word-break: break-word;
+      user-select: text;
+      cursor: text;
+    }
+
+    td .cell-text pre {
+      padding: 0;
+      background: transparent;
     }
 
     table {
@@ -201,16 +306,61 @@
       text-align: left;
       padding: 4px 6px;
       vertical-align: top;
+      position: relative;
     }
 
     th {
       width: 30%;
       font-weight: 600;
       color: var(--text-color);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      user-select: text;
+      cursor: text;
     }
 
     td {
       color: var(--text-muted);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      user-select: text;
+      cursor: text;
+    }
+
+    th:hover,
+    td:hover {
+      background: var(--surface-1);
+    }
+
+    body[data-theme="dark"] th:hover,
+    body[data-theme="dark"] td:hover {
+      background: var(--surface-2);
+    }
+
+    td pre {
+      user-select: text;
+      cursor: text;
+      margin: 0;
+    }
+
+    th .cell-content,
+    td .cell-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+    }
+
+    th .cell-text,
+    td .cell-text {
+      flex: 1;
+      user-select: text;
+      cursor: text;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    th .cell-text:active,
+    td .cell-text:active {
+      user-select: text;
     }
 
     .tab-list {
@@ -262,6 +412,15 @@
       gap: 8px;
       margin-bottom: 10px;
       flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .search-bar .search-input-group {
+      display: flex;
+      gap: 8px;
+      flex: 1;
+      min-width: 280px;
     }
 
     .search-bar button {
@@ -355,26 +514,33 @@
     .copy-btn {
       background: transparent;
       border: 1px solid transparent;
-      padding: 2px 4px;
-      margin: 0 2px 0 0;
+      padding: 3px 5px;
+      margin: 0;
       line-height: 1;
-      font-size: 12px;
+      font-size: 13px;
       cursor: pointer;
       color: var(--text-muted);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       border-radius: 4px;
-      transition: color .15s ease, border-color .15s ease, background .15s ease;
-      width: 22px;
-      min-width: 22px;
-      text-align: center;
+      transition: all .2s ease;
+      min-width: 24px;
+      height: 24px;
+      opacity: 0.6;
+      flex-shrink: 0;
+    }
+
+    th:hover .copy-btn,
+    td:hover .copy-btn {
+      opacity: 1;
     }
 
     .copy-btn:hover {
-      color: var(--text-color);
-      border-color: var(--border-color);
+      color: var(--primary-color);
       background: var(--surface-1);
+      border-color: var(--border-color);
+      transform: scale(1.1);
     }
 
     body[data-theme="dark"] .copy-btn:hover {
@@ -382,21 +548,114 @@
     }
 
     .copy-btn:active {
-      transform: translateY(1px);
-    }
-
-    .copy-btn.copied,
-    .copy-btn:disabled {
-      pointer-events: none;
-      opacity: .6;
+      transform: scale(0.95);
     }
 
     .copy-btn.copied {
-      color: var(--primary-color-dark);
+      color: #15803d;
+      background: #f0fdf4;
+      border-color: #86efac;
+      animation: copyPulse 0.4s ease;
+    }
+
+    body[data-theme="dark"] .copy-btn.copied {
+      color: #4ade80;
+      background: rgba(74, 222, 128, 0.1);
+      border-color: #4ade80;
+    }
+
+    @keyframes copyPulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.2);
+      }
+      100% {
+        transform: scale(1);
+      }
     }
 
     .copy-btn::-moz-focus-inner {
       border: 0;
+    }
+
+    .highlight {
+      background: #ffeb3b;
+      color: #000;
+      padding: 2px 3px;
+      border-radius: 3px;
+      font-weight: 600;
+      box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.3);
+      animation: highlightPulse 0.5s ease-out;
+    }
+
+    body[data-theme="dark"] .highlight {
+      background: #fdd835;
+      color: #000;
+      box-shadow: 0 0 0 2px rgba(253, 216, 53, 0.4);
+    }
+
+    @keyframes highlightPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 235, 59, 0.6);
+      }
+      100% {
+        box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.3);
+      }
+    }
+
+    .cell-copied-flash {
+      animation: cellFlash 0.5s ease;
+    }
+
+    @keyframes cellFlash {
+      0% {
+        background: var(--primary-color-light);
+      }
+      100% {
+        background: transparent;
+      }
+    }
+
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    body[data-theme="dark"] .tooltip {
+      background: rgba(255, 255, 255, 0.95);
+      color: #000;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    .tooltip.visible {
+      opacity: 1;
+    }
+
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(0, 0, 0, 0.9);
+    }
+
+    body[data-theme="dark"] .tooltip::after {
+      border-top-color: rgba(255, 255, 255, 0.95);
     }
   </style>
 </head>
@@ -409,7 +668,7 @@
       <button id="themeToggle" type="button" aria-label="Temayı değiştir"><span class="theme-indicator" id="themeIcon">🌞</span><span id="themeLabel">Açık Tema</span></button>
     </div>
   </div>
-  <p>Burada tema altyapındaki değişkenleri görebilirsin.</p>
+
   <div id="debugWarning" class="warning-message">
     Bu eklentiyi sadece mağaza sahipleri kullanabilir. Mağaza sahibiyseniz yönetici paneline giriş yapıp sayfayı yenileyin.
   </div>
@@ -425,8 +684,11 @@
 
     <div class="tab-panel" data-tab-panel="translations">
       <div class="search-bar">
-        <input id="translationSearch" type="search" placeholder="Dil anahtarı veya metninde ara..." />
-        <button id="refreshTranslations" type="button">Yenile</button>
+        <div class="search-input-group">
+          <input id="translationSearch" type="search" placeholder="Dil anahtarı veya metninde ara..." />
+          <button id="refreshTranslations" type="button">Yenile</button>
+        </div>
+        <button id="toggleAllTranslations" class="toggle-all-btn all-closed" type="button">Tümünü Aç</button>
       </div>
 
       <div id="translationStatus" class="status-message"></div>
@@ -435,8 +697,11 @@
 
     <div class="tab-panel" data-tab-panel="page">
       <div class="search-bar">
-        <input id="blockVarsSearch" type="search" placeholder="Blok adı, değişken anahtarı veya değerde ara..." />
-        <button id="refreshBlockVars" type="button">Yenile</button>
+        <div class="search-input-group">
+          <input id="blockVarsSearch" type="search" placeholder="Blok adı, değişken anahtarı veya değerde ara..." />
+          <button id="refreshBlockVars" type="button">Yenile</button>
+        </div>
+        <button id="toggleAllBlockVars" class="toggle-all-btn all-closed" type="button">Tümünü Aç</button>
       </div>
       <div id="blockVarsStatus" class="status-message"></div>
       <div id="blockVarsContainer" class="translation-groups"></div>
@@ -444,8 +709,10 @@
 
     <div class="tab-panel active" data-tab-panel="global">
       <div class="search-bar">
-        <input id="globalVarsSearch" type="search" placeholder="Global değişken anahtarı veya değerde ara..." />
-        <button id="refreshGlobalVars" type="button">Yenile</button>
+        <div class="search-input-group">
+          <input id="globalVarsSearch" type="search" placeholder="Global değişken anahtarı veya değerde ara..." />
+          <button id="refreshGlobalVars" type="button">Yenile</button>
+        </div>
       </div>
       <div id="globalVarsStatus" class="status-message"></div>
       <div id="globalVarsContainer" class="translation-groups"></div>

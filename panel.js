@@ -19,6 +19,8 @@ const THEME_STORAGE_KEY = "tsoft_devtools_theme";
 const themeToggleBtn = document.getElementById("themeToggle");
 const themeIconEl = document.getElementById("themeIcon");
 const themeLabelEl = document.getElementById("themeLabel");
+const toggleAllTranslationsBtn = document.getElementById("toggleAllTranslations");
+const toggleAllBlockVarsBtn = document.getElementById("toggleAllBlockVars");
 
 let translationsStore = {};
 let currentSearchQuery = "";
@@ -30,6 +32,157 @@ let globalVarsSearchQuery = "";
 let blockVarsSearchQuery = "";
 const MAX_FETCH_RETRY = 5;
 const FETCH_RETRY_DELAY = 500;
+
+function createToggleAllButton(container, labelPrefix = "") {
+  const btn = document.createElement("button");
+  btn.className = "toggle-all-btn all-closed";
+  btn.type = "button";
+  btn.textContent = "Tümünü Aç";
+  let allOpen = false;
+  
+  btn.addEventListener("click", () => {
+    allOpen = !allOpen;
+    toggleAllAccordions(container, allOpen);
+    btn.textContent = allOpen ? "Tümünü Kapat" : "Tümünü Aç";
+    btn.classList.toggle("all-closed", !allOpen);
+  });
+  
+  return btn;
+}
+
+function highlightText(text, query) {
+  if (!query || typeof text !== 'string') {
+    return text;
+  }
+  
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+function toggleAllAccordions(container, open) {
+  if (!container) return;
+  const allDetails = container.querySelectorAll('details');
+  allDetails.forEach(details => {
+    details.open = open;
+  });
+}
+
+function getSelectedText() {
+  const selection = window.getSelection();
+  return selection ? selection.toString().trim() : '';
+}
+
+function showTooltip(element, text, duration = 1500) {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'tooltip';
+  tooltip.textContent = text;
+  document.body.appendChild(tooltip);
+  
+  const rect = element.getBoundingClientRect();
+  tooltip.style.left = `${rect.left + rect.width / 2}px`;
+  tooltip.style.top = `${rect.top - 10}px`;
+  tooltip.style.transform = 'translate(-50%, -100%)';
+  
+  requestAnimationFrame(() => {
+    tooltip.classList.add('visible');
+  });
+  
+  setTimeout(() => {
+    tooltip.classList.remove('visible');
+    setTimeout(() => {
+      if (tooltip.parentNode) {
+        tooltip.parentNode.removeChild(tooltip);
+      }
+    }, 200);
+  }, duration);
+}
+
+function copyTextToClipboard(text, onSuccess) {
+  if (!text) return;
+  
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    ta.style.left = "-1000px";
+    ta.style.opacity = "0";
+    ta.style.pointerEvents = "none";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const success = document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (success) {
+      onSuccess?.();
+    }
+  } catch (error) {
+    console.error("Kopyalama hatası:", error);
+  }
+}
+
+function createSmartCopyButton(getFullText, getCellElement) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "copy-btn";
+  btn.innerHTML = "📋";
+  btn.title = "Kopyala";
+  
+  let tooltipTimeout;
+  
+  btn.addEventListener("mouseenter", () => {
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => {
+      const selectedText = getSelectedText();
+      const tooltipText = selectedText 
+        ? "Seçili metni kopyala" 
+        : "Tümünü kopyala (veya metin seç)";
+      showTooltip(btn, tooltipText, 2000);
+    }, 500);
+  });
+  
+  btn.addEventListener("mouseleave", () => {
+    clearTimeout(tooltipTimeout);
+  });
+  
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    clearTimeout(tooltipTimeout);
+    
+    const selectedText = getSelectedText();
+    const textToCopy = selectedText || getFullText();
+    
+    if (!textToCopy) return;
+    
+    copyTextToClipboard(textToCopy, () => {
+      btn.classList.add("copied");
+      const originalIcon = btn.innerHTML;
+      btn.innerHTML = "✓";
+      
+      const cell = getCellElement?.();
+      if (cell) {
+        cell.classList.add('cell-copied-flash');
+        setTimeout(() => cell.classList.remove('cell-copied-flash'), 500);
+      }
+      
+      const copyMsg = selectedText 
+        ? `Seçili metin kopyalandı! (${selectedText.length} karakter)` 
+        : `Kopyalandı! (${textToCopy.length} karakter)`;
+      showTooltip(btn, copyMsg, 1500);
+      
+      setTimeout(() => {
+        btn.classList.remove("copied");
+        btn.innerHTML = originalIcon;
+      }, 1500);
+    });
+  });
+  
+  return btn;
+}
+
+function addValueCellCopyFeature(cell, valueText) {
+  return;
+}
 const ACTIVE_PAGE_EVAL_SCRIPT = `(function () {
   try {
     return window.location && window.location.href
@@ -249,49 +402,7 @@ function updateActivePage(retryAttempt = 0) {
 }
 
 function createCopyButton(getText) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "copy-btn";
-  btn.innerHTML = "📋";
-  btn.title = "Kopyala";
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    let text = "";
-    try { text = getText(); } catch (_) { }
-    if (!text) return;
-    const finalizeSuccess = () => {
-      btn.classList.add("copied");
-      btn.innerHTML = "✓";
-      btn.title = "Kopyalandı";
-      setTimeout(() => {
-        btn.classList.remove("copied");
-        btn.innerHTML = "📋";
-        btn.title = "Kopyala";
-      }, 1200);
-    };
-    const fallback = () => {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.top = "-1000px";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        finalizeSuccess();
-      } catch (_) { }
-    };
-    const isDevtools = location.protocol === "devtools:";
-    if (!isDevtools && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text)
-        .then(finalizeSuccess)
-        .catch(fallback);
-    } else {
-      fallback();
-    }
-  });
-  return btn;
+  return createSmartCopyButton(getText, null);
 }
 
 function renderTranslations(filterText = "") {
@@ -336,32 +447,94 @@ function renderTranslations(filterText = "") {
     const groupEl = document.createElement("div");
     groupEl.className = "translation-group";
 
-    const titleEl = document.createElement("h3");
-    titleEl.textContent = groupKey;
-    groupEl.appendChild(titleEl);
+    const detailsEl = document.createElement("details");
+    if (normalizedFilter) {
+      detailsEl.open = true;
+    }
+
+    const summaryEl = document.createElement("summary");
+    summaryEl.textContent = groupKey;
+    detailsEl.appendChild(summaryEl);
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "translation-group-content";
 
     const tableEl = document.createElement("table");
     const tbodyEl = document.createElement("tbody");
 
     filteredEntries.forEach((key) => {
       const rowEl = document.createElement("tr");
+      
       const keyCell = document.createElement("th");
+      const keyCellContent = document.createElement("div");
+      keyCellContent.className = "cell-content";
+      
+      const keyCopyBtn = createSmartCopyButton(() => key, () => keyCell);
+      keyCellContent.appendChild(keyCopyBtn);
+      
+      const keyTextSpan = document.createElement("span");
+      keyTextSpan.className = "cell-text";
       const value = groupValue[key];
-      // KEY kopyalanacak (span içeriği)
-      const copyBtn = createCopyButton(() => key);
-      keyCell.appendChild(copyBtn);
-      const keyLabelSpan = document.createElement("span");
-      keyLabelSpan.textContent = " " + key; // space after icon
-      keyCell.appendChild(keyLabelSpan);
+      
+      if (normalizedFilter && key.toLowerCase().includes(normalizedFilter)) {
+        keyTextSpan.innerHTML = highlightText(key, normalizedFilter);
+      } else {
+        keyTextSpan.textContent = key;
+      }
+      keyCellContent.appendChild(keyTextSpan);
+      keyCell.appendChild(keyCellContent);
+      
+      keyTextSpan.addEventListener("dblclick", () => {
+        const range = document.createRange();
+        range.selectNodeContents(keyTextSpan);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+      
       const valueCell = document.createElement("td");
-      if (typeof value === "string") { valueCell.textContent = value; } else { valueCell.textContent = JSON.stringify(value, null, 0); }
+      const valueCellContent = document.createElement("div");
+      valueCellContent.className = "cell-content";
+      
+      let displayValue = "";
+      if (typeof value === "string") { 
+        displayValue = value;
+      } else { 
+        displayValue = JSON.stringify(value, null, 2);
+      }
+      
+      const valueCopyBtn = createSmartCopyButton(() => displayValue, () => valueCell);
+      valueCellContent.appendChild(valueCopyBtn);
+      
+      const valueTextSpan = document.createElement("span");
+      valueTextSpan.className = "cell-text";
+      
+      if (normalizedFilter) {
+        valueTextSpan.innerHTML = highlightText(displayValue, normalizedFilter);
+      } else {
+        valueTextSpan.textContent = displayValue;
+      }
+      valueCellContent.appendChild(valueTextSpan);
+      valueCell.appendChild(valueCellContent);
+      
+      valueTextSpan.addEventListener("dblclick", () => {
+        const range = document.createRange();
+        range.selectNodeContents(valueTextSpan);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+      
       rowEl.appendChild(keyCell);
       rowEl.appendChild(valueCell);
       tbodyEl.appendChild(rowEl);
     });
 
     tableEl.appendChild(tbodyEl);
-    groupEl.appendChild(tableEl);
+    contentDiv.appendChild(tableEl);
+    detailsEl.appendChild(contentDiv);
+    groupEl.appendChild(detailsEl);
+    
     translationsContainerEl.appendChild(groupEl);
     visibleGroupCount += 1;
   });
@@ -389,7 +562,7 @@ function formatValue(value) {
   }
 }
 
-function createValueElement(value) {
+function createValueElement(value, highlightQuery = "") {
   if (Array.isArray(value)) {
     if (!value.length) {
       const emptyArrayEl = document.createElement("span");
@@ -402,14 +575,27 @@ function createValueElement(value) {
   if (value !== null && typeof value === "object") {
     const preEl = document.createElement("pre");
     try {
-      preEl.textContent = JSON.stringify(value, null, 2);
+      const jsonStr = JSON.stringify(value, null, 2);
+      if (highlightQuery) {
+        preEl.innerHTML = highlightText(jsonStr, highlightQuery);
+      } else {
+        preEl.textContent = jsonStr;
+      }
+      preEl.dataset.rawValue = jsonStr;
     } catch (error) {
       preEl.textContent = String(value);
+      preEl.dataset.rawValue = String(value);
     }
     return preEl;
   }
   const spanEl = document.createElement("span");
-  spanEl.textContent = formatValue(value);
+  const formattedValue = formatValue(value);
+  if (highlightQuery) {
+    spanEl.innerHTML = highlightText(formattedValue, highlightQuery);
+  } else {
+    spanEl.textContent = formattedValue;
+  }
+  spanEl.dataset.rawValue = formattedValue;
   return spanEl;
 }
 
@@ -460,14 +646,82 @@ function renderGlobalVars(data, filterText = "") {
 
   filteredEntries.forEach(([keyLabel, value]) => {
     const rowEl = document.createElement("tr");
+    
     const keyCell = document.createElement("th");
-    const copyBtn = createCopyButton(() => keyLabel); // KEY kopyala
-    keyCell.appendChild(copyBtn);
+    const keyCellContent = document.createElement("div");
+    keyCellContent.className = "cell-content";
+    
+    const keyCopyBtn = createSmartCopyButton(() => keyLabel, () => keyCell);
+    keyCellContent.appendChild(keyCopyBtn);
+    
     const keySpan = document.createElement("span");
-    keySpan.textContent = " " + keyLabel;
-    keyCell.appendChild(keySpan);
+    keySpan.className = "cell-text";
+    if (normalizedFilter && keyLabel.toLowerCase().includes(normalizedFilter)) {
+      keySpan.innerHTML = highlightText(keyLabel, normalizedFilter);
+    } else {
+      keySpan.textContent = keyLabel;
+    }
+    keyCellContent.appendChild(keySpan);
+    keyCell.appendChild(keyCellContent);
+    
+    keySpan.addEventListener("dblclick", () => {
+      const range = document.createRange();
+      range.selectNodeContents(keySpan);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+    
     const valueCell = document.createElement("td");
-    valueCell.appendChild(createValueElement(value));
+    const valueCellContent = document.createElement("div");
+    valueCellContent.className = "cell-content";
+    
+    const valueStr = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    const valueCopyBtn = createSmartCopyButton(() => valueStr, () => valueCell);
+    valueCellContent.appendChild(valueCopyBtn);
+    
+    const valueTextSpan = document.createElement("span");
+    valueTextSpan.className = "cell-text";
+    
+    if (value !== null && typeof value === "object") {
+      const preEl = document.createElement("pre");
+      try {
+        if (normalizedFilter) {
+          preEl.innerHTML = highlightText(valueStr, normalizedFilter);
+        } else {
+          preEl.textContent = valueStr;
+        }
+      } catch (error) {
+        preEl.textContent = String(value);
+      }
+      valueTextSpan.appendChild(preEl);
+      
+      preEl.addEventListener("dblclick", () => {
+        const range = document.createRange();
+        range.selectNodeContents(preEl);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+    } else {
+      if (normalizedFilter) {
+        valueTextSpan.innerHTML = highlightText(valueStr, normalizedFilter);
+      } else {
+        valueTextSpan.textContent = valueStr;
+      }
+      
+      valueTextSpan.addEventListener("dblclick", () => {
+        const range = document.createRange();
+        range.selectNodeContents(valueTextSpan);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+    }
+    
+    valueCellContent.appendChild(valueTextSpan);
+    valueCell.appendChild(valueCellContent);
+    
     rowEl.appendChild(keyCell);
     rowEl.appendChild(valueCell);
     tbodyEl.appendChild(rowEl);
@@ -533,15 +787,26 @@ function renderBlockVars(data, filterText = "") {
     const groupEl = document.createElement("div");
     groupEl.className = "translation-group";
 
-    const titleEl = document.createElement("h3");
-    titleEl.textContent = blockName;
-    groupEl.appendChild(titleEl);
+    const detailsEl = document.createElement("details");
+    if (normalizedFilter) {
+      detailsEl.open = true;
+    }
+
+    const summaryEl = document.createElement("summary");
+    summaryEl.textContent = blockName;
+    detailsEl.appendChild(summaryEl);
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "translation-group-content";
 
     if (!filteredEntries.length) {
       const emptyEl = document.createElement("p");
       emptyEl.className = "section-help";
       emptyEl.textContent = "Bu blok için tanımlı değişken yok.";
-      groupEl.appendChild(emptyEl);
+      contentDiv.appendChild(emptyEl);
+      detailsEl.appendChild(contentDiv);
+      groupEl.appendChild(detailsEl);
+      
       blockVarsContainerEl.appendChild(groupEl);
       renderedCount += 1;
       return;
@@ -552,21 +817,92 @@ function renderBlockVars(data, filterText = "") {
 
     filteredEntries.forEach(([keyLabel, value]) => {
       const rowEl = document.createElement("tr");
+      
       const keyCell = document.createElement("th");
-      const copyBtn = createCopyButton(() => keyLabel); // KEY kopyala
-      keyCell.appendChild(copyBtn);
+      const keyCellContent = document.createElement("div");
+      keyCellContent.className = "cell-content";
+      
+      const keyCopyBtn = createSmartCopyButton(() => keyLabel, () => keyCell);
+      keyCellContent.appendChild(keyCopyBtn);
+      
       const keySpan = document.createElement("span");
-      keySpan.textContent = " " + keyLabel;
-      keyCell.appendChild(keySpan);
+      keySpan.className = "cell-text";
+      if (normalizedFilter && keyLabel.toLowerCase().includes(normalizedFilter)) {
+        keySpan.innerHTML = highlightText(keyLabel, normalizedFilter);
+      } else {
+        keySpan.textContent = keyLabel;
+      }
+      keyCellContent.appendChild(keySpan);
+      keyCell.appendChild(keyCellContent);
+      
+      keySpan.addEventListener("dblclick", () => {
+        const range = document.createRange();
+        range.selectNodeContents(keySpan);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+      
       const valueCell = document.createElement("td");
-      valueCell.appendChild(createValueElement(value));
+      const valueCellContent = document.createElement("div");
+      valueCellContent.className = "cell-content";
+      
+      const valueStr = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      const valueCopyBtn = createSmartCopyButton(() => valueStr, () => valueCell);
+      valueCellContent.appendChild(valueCopyBtn);
+      
+      const valueTextSpan = document.createElement("span");
+      valueTextSpan.className = "cell-text";
+      
+      if (value !== null && typeof value === "object") {
+        const preEl = document.createElement("pre");
+        try {
+          if (normalizedFilter) {
+            preEl.innerHTML = highlightText(valueStr, normalizedFilter);
+          } else {
+            preEl.textContent = valueStr;
+          }
+        } catch (error) {
+          preEl.textContent = String(value);
+        }
+        valueTextSpan.appendChild(preEl);
+        
+        preEl.addEventListener("dblclick", () => {
+          const range = document.createRange();
+          range.selectNodeContents(preEl);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        });
+      } else {
+        if (normalizedFilter) {
+          valueTextSpan.innerHTML = highlightText(valueStr, normalizedFilter);
+        } else {
+          valueTextSpan.textContent = valueStr;
+        }
+        
+        valueTextSpan.addEventListener("dblclick", () => {
+          const range = document.createRange();
+          range.selectNodeContents(valueTextSpan);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        });
+      }
+      
+      valueCellContent.appendChild(valueTextSpan);
+      valueCell.appendChild(valueCellContent);
+      
       rowEl.appendChild(keyCell);
       rowEl.appendChild(valueCell);
       tbodyEl.appendChild(rowEl);
     });
 
     tableEl.appendChild(tbodyEl);
-    groupEl.appendChild(tableEl);
+    contentDiv.appendChild(tableEl);
+    detailsEl.appendChild(contentDiv);
+    groupEl.appendChild(detailsEl);
+    
     blockVarsContainerEl.appendChild(groupEl);
     renderedCount += 1;
   });
@@ -801,6 +1137,26 @@ tabButtons.forEach((button) => {
     }
   });
 });
+
+if (toggleAllTranslationsBtn) {
+  let allTranslationsOpen = false;
+  toggleAllTranslationsBtn.addEventListener("click", () => {
+    allTranslationsOpen = !allTranslationsOpen;
+    toggleAllAccordions(translationsContainerEl, allTranslationsOpen);
+    toggleAllTranslationsBtn.textContent = allTranslationsOpen ? "Tümünü Kapat" : "Tümünü Aç";
+    toggleAllTranslationsBtn.classList.toggle("all-closed", !allTranslationsOpen);
+  });
+}
+
+if (toggleAllBlockVarsBtn) {
+  let allBlockVarsOpen = false;
+  toggleAllBlockVarsBtn.addEventListener("click", () => {
+    allBlockVarsOpen = !allBlockVarsOpen;
+    toggleAllAccordions(blockVarsContainerEl, allBlockVarsOpen);
+    toggleAllBlockVarsBtn.textContent = allBlockVarsOpen ? "Tümünü Kapat" : "Tümünü Aç";
+    toggleAllBlockVarsBtn.classList.toggle("all-closed", !allBlockVarsOpen);
+  });
+}
 
 if (hasDevtools) {
   verifyDebugMode(0, (enabled) => {
